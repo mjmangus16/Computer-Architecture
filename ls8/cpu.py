@@ -15,10 +15,17 @@ class CPU:
         self.pc = 0
         self.running = False
         self.sp = 7
+        self.equal = 0
+        self.lesser = 0
+        self.greater = 0
         self.HLT = 0b00000001
         self.LDI = 0b10000010
         self.PRN = 0b01000111
         self.MUL = 0b10100010
+        self.CMP = 0b10100111
+        self.JMP = 0b01010100
+        self.JNE = 0b01010110
+        self.JEQ = 0b01010101
         self.PUSH = 0b01000101
         self.POP = 0b01000110
 
@@ -49,18 +56,6 @@ class CPU:
         except FileNotFoundError:
             print(f"{sys.argv[0]}! {sys.argv[1]} not found")
             sys.exit(2)
-
-        print("program", program)
-
-        # program = [
-        #     # From print8.ls8
-        #     0b10000010,  # LDI R0,8
-        #     0b00000000,
-        #     0b00001000,
-        #     0b01000111,  # PRN R0
-        #     0b00000000,
-        #     0b00000001,  # HLT
-        # ]
 
         for instruction in program:
             self.ram[address] = instruction
@@ -121,6 +116,18 @@ class CPU:
             elif command == self.POP:
                 self.run_POP()
 
+            elif command == self.CMP:
+                self.run_CMP()
+
+            elif command == self.JMP:
+                self.run_JMP()
+
+            elif command == self.JEQ:
+                self.run_JEQ()
+
+            elif command == self.JNE:
+                self.run_JNE()
+
     def ram_read(self, address):
         return self.ram[address]
 
@@ -143,7 +150,7 @@ class CPU:
         self.pc += 3
 
     def run_PRN(self):
-        print(self.register)
+        print(self.register[self.ram_read(self.pc+1)])
         self.pc += 2
 
     def run_MUL(self):
@@ -165,6 +172,36 @@ class CPU:
         self.register[reg] = val
         self.register[self.sp] += 1
         self.pc += 2
+
+    def run_CMP(self):
+        if self.register[self.ram_read(self.pc+1)] > self.register[self.ram_read(self.pc+2)]:
+            self.greater = 1
+            self.equal = 0
+            self.lesser = 0
+        elif self.register[self.ram_read(self.pc+1)] == self.register[self.ram_read(self.pc+2)]:
+            self.greater = 0
+            self.equal = 1
+            self.lesser = 0
+        elif self.register[self.ram_read(self.pc+1)] < self.register[self.ram_read(self.pc+2)]:
+            self.greater = 0
+            self.equal = 0
+            self.lesser = 1
+        self.pc += 3
+
+    def run_JMP(self):
+        self.pc = self.register[self.ram_read(self.pc+1)]
+
+    def run_JEQ(self):
+        if self.equal == 1:
+            self.pc = self.register[self.ram_read(self.pc+1)]
+        else:
+            self.pc += 2
+
+    def run_JNE(self):
+        if self.equal == 0:
+            self.pc = self.register[self.ram_read(self.pc+1)]
+        else:
+            self.pc += 2
 
 
 cpu = CPU()
